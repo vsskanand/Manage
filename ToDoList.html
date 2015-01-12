@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        color: #222;
+        font: 24px Arial;
+      }
+      
+      button {
+        color: #222;
+        font: 20px Arial;
+      }
+
+      body a {
+        color: #3D5C9D;
+        text-decoration: none;
+        /*background: #234456;*/
+      }
+    </style>
+    <script>
+      var vsskanand = {};
+      vsskanand.webdb = {};
+      vsskanand.webdb.db = null;
+      
+      vsskanand.webdb.open = function() {
+        var dbSize = 5 * 1024 * 1024; // 5MB
+        vsskanand.webdb.db = openDatabase("Todo", "1.0", "Todo manager", dbSize);
+      }
+      
+      vsskanand.webdb.createTable = function() {
+        var db = vsskanand.webdb.db;
+        db.transaction(function(tx) {
+          tx.executeSql("CREATE TABLE IF NOT EXISTS todo(ID INTEGER PRIMARY KEY ASC, todo TEXT, added_on DATETIME)", []);
+        });
+      }
+      
+      vsskanand.webdb.addTodo = function(todoText) {
+        var db = vsskanand.webdb.db;
+        db.transaction(function(tx){
+          var addedOn = new Date();
+          tx.executeSql("INSERT INTO todo(todo, added_on) VALUES (?,?)",
+              [todoText, addedOn],
+              vsskanand.webdb.onSuccess,
+              vsskanand.webdb.onError);
+         });
+      }
+      
+      vsskanand.webdb.onError = function(tx, e) {
+        alert("There has been an error: " + e.message);
+      }
+      
+      vsskanand.webdb.onSuccess = function(tx, r) {
+        // re-render the data.
+        vsskanand.webdb.getAllTodoItems(loadTodoItems);
+      }
+      
+      
+      vsskanand.webdb.getAllTodoItems = function(renderFunc) {
+        var db = vsskanand.webdb.db;
+        db.transaction(function(tx) {
+          tx.executeSql("SELECT * FROM todo", [], renderFunc,
+              vsskanand.webdb.onError);
+        });
+      }
+      
+      vsskanand.webdb.deleteTodo = function(id) {
+        var db = vsskanand.webdb.db;
+        db.transaction(function(tx){
+          tx.executeSql("DELETE FROM todo WHERE ID=?", [id],
+              vsskanand.webdb.onSuccess,
+              vsskanand.webdb.onError);
+          });
+      }
+      
+      function loadTodoItems(tx, rs) {
+        var rowOutput = "";
+        var todoItems = document.getElementById("todoItems");
+        for (var i=0; i < rs.rows.length; i++) {
+          rowOutput += renderTodo(rs.rows.item(i));
+        }
+      
+        todoItems.innerHTML = rowOutput;
+        
+      }
+      
+      /* Delete*/
+      function renderTodo(row) {
+        return "" + row.todo  + " [<a href='javascript:void(0);' onclick='vsskanand.webdb.deleteTodo(" + row.ID +");'>Delete</a>]"+ "<br>";
+         
+      }
+      
+      function init() {
+        vsskanand.webdb.open();
+        vsskanand.webdb.createTable();
+        vsskanand.webdb.getAllTodoItems(loadTodoItems);
+      }
+      
+      function addTodo() {
+        //var todo;
+        var todo = document.getElementById("todo");
+        vsskanand.webdb.addTodo(todo.value);
+        todo.value = "";
+
+        var todo1 = document.getElementById("todo1");
+        vsskanand.webdb.addTodo(todo1.value);
+        todo1.value = "";
+
+        var todo2 = document.getElementById("todo2");
+        vsskanand.webdb.addTodo(todo2.value);
+        todo2.value = "";
+
+        //todo.value = todo1.value+todo2.value+todo3.value;
+      }
+    </script>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  </head>
+  <body onload="init();" align="center">
+    
+    <form type="post" onsubmit="addTodo(); return false;" data-ajax="false">
+      <input type="text" id="todo" name="todo" placeholder="Name" style="font-size:14px ; width: 100px;" />
+
+      <input type="text" id="todo1" name="todo1" placeholder="Designation" style="font-size:14px ; width: 100px;" />
+    
+      <input type="text" id="todo2" name="todo2" placeholder="E Mail" style="font-size:14px ; width: 100px;" />
+      <button type="submit" name="Add" value="Add Todo Item" style="font-size:20px;">Add Task</button>
+
+    </form>
+    <h5 id="todoItems">
+    </h5>
+    <br>
+    
+  </body>
+</html>​
